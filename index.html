@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Neural Personalizable</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: radial-gradient(circle at 30% 20%, #1a0033 0%, transparent 50%), radial-gradient(circle at 70% 80%, #001a33 0%, transparent 50%), #000011;
+            overflow: hidden;
+            height: 100vh;
+            cursor: none;
+            font-family: 'Segoe UI', system-ui, sans-serif;
+        }
+
+        .container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* Panel de Control */
+        .control-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 20, 40, 0.95);
+            backdrop-filter: blur(10px);
+            border: 2px solid #00ffff44;
+            border-radius: 15px;
+            padding: 20px;
+            color: #00ffff;
+            font-size: 14px;
+            z-index: 3000;
+            max-width: 300px;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.3);
+            transform: translateX(calc(100% - 60px));
+            transition: transform 0.3s ease;
+        }
+
+        .control-panel:hover {
+            transform: translateX(0);
+        }
+
+        .control-toggle {
+            position: absolute;
+            left: -40px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #00ffff22;
+            border: 2px solid #00ffff;
+            border-radius: 20px 0 0 20px;
+            width: 40px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 18px;
+        }
+
+        .control-group {
+            margin-bottom: 15px;
+        }
+
+        .control-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            text-shadow: 0 0 5px #00ffff;
+        }
+
+        .control-group input[type="range"] {
+            width: 100%;
+            height: 6px;
+            background: #003366;
+            border-radius: 3px;
+            outline: none;
+            border: 1px solid #00ffff44;
+        }
+
+        .control-group input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            background: linear-gradient(45deg, #00ffff, #ff0080);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px #00ffff;
+        }
+
+        .control-group select,
+        .control-group input[type="color"] {
+            width: 100%;
+            padding: 8px;
+            background: #003366;
+            border: 1px solid #00ffff44;
+            border-radius: 5px;
+            color: #00ffff;
+        }
+
+        .preset-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .preset-btn {
+            padding: 8px;
+            background: linear-gradient(45deg, #00ffff22, #ff008022);
+            border: 1px solid #00ffff44;
+            border-radius: 8px;
+            color: #00ffff;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 12px;
+            border: none;
+        }
+
+        .preset-btn:hover {
+            background: linear-gradient(45deg, #00ffff44, #ff008044);
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+        }
+
+        /* Núcleo principal */
+        .core {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 25% 25%, #fff, #ff0080 20%, #8800ff 50%, #4400aa 80%, #000);
+            box-shadow: 0 0 40px #ff0080, 0 0 80px #ff008055, 0 0 120px #ff008033;
+            will-change: transform;
+            z-index: 1000;
+            transform: translate(-50%, -50%);
+        }
+
+        /* Orbes */
+        .orb {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 30% 30%, #fff, #00ffff 30%, #0080ff 70%, #003380);
+            box-shadow: 0 0 30px #00ffff, 0 0 60px #00ffff44;
+            will-change: transform;
+            z-index: 900;
+            transform: translate(-50%, -50%);
+        }
+
+        /* Conexiones */
+        .connection {
+            position: absolute;
+            height: 4px;
+            background: linear-gradient(90deg, transparent 0%, #00ffff 10%, #ffffff 50%, #00ffff 90%, transparent 100%);
+            box-shadow: 0 0 15px #00ffff, 0 0 30px #00ffff44;
+            border-radius: 2px;
+            will-change: transform, opacity;
+            z-index: 800;
+            transform-origin: left center;
+        }
+
+        .info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #00ffff;
+            font-size: 18px;
+            font-weight: 300;
+            text-shadow: 0 0 10px #00ffff;
+            z-index: 2000;
+        }
+
+        .stats {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            color: #ff0080;
+            font-size: 14px;
+            text-shadow: 0 0 8px #ff0080;
+            z-index: 2000;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="info">⚡ Sistema Neural Personalizable</div>
+        <div class="stats">
+            <div>Núcleos: <span id="coreCount">1</span></div>
+            <div>Orbes: <span id="orbCount">8</span></div>
+            <div>FPS: <span id="fps">60</span></div>
+        </div>
+        
+        <div class="control-panel" id="controlPanel">
+            <div class="control-toggle">⚙️</div>
+            
+            <div class="control-group">
+                <label>Velocidad de Movimiento</label>
+                <input type="range" id="speedSlider" min="0.001" max="0.05" step="0.001" value="0.015">
+                <span id="speedValue">0.015</span>
+            </div>
+
+            <div class="control-group">
+                <label>Suavidad</label>
+                <input type="range" id="smoothnessSlider" min="0.7" max="0.98" step="0.01" value="0.88">
+                <span id="smoothnessValue">0.88</span>
+            </div>
+
+            <div class="control-group">
+                <label>Cantidad de Orbes</label>
+                <input type="range" id="orbCountSlider" min="3" max="15" step="1" value="8">
+                <span id="orbCountValue">8</span>
+            </div>
+
+            <div class="control-group">
+                <label>Color del Núcleo</label>
+                <input type="color" id="coreColorPicker" value="#ff0080">
+            </div>
+
+            <div class="control-group">
+                <label>Color de Orbes</label>
+                <input type="color" id="orbColorPicker" value="#00ffff">
+            </div>
+
+            <div class="preset-buttons">
+                <button class="preset-btn" onclick="applyPreset('smooth')">Suave</button>
+                <button class="preset-btn" onclick="applyPreset('energetic')">Energético</button>
+                <button class="preset-btn" onclick="applyPreset('minimal')">Minimal</button>
+                <button class="preset-btn" onclick="applyPreset('rainbow')">Arcoíris</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class NeuralSystem {
+            constructor() {
+                this.elements = [];
+                this.connections = [];
+                this.orbCount = 8;
+                this.mousePos = { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+                this.positions = [];
+                
+                // Configuración
+                this.config = {
+                    speed: 0.015,
+                    smoothness: 0.88,
+                    coreColor: '#ff0080',
+                    orbColor: '#00ffff'
+                };
+                
+                this.init();
+                this.bindEvents();
+                this.bindControls();
+                this.animate();
+            }
+
+            init() {
+                // Crear núcleo principal
+                const core = document.createElement('div');
+                core.className = 'core';
+                document.body.appendChild(core);
+                this.elements.push(core);
+
+                // Inicializar posiciones
+                for (let i = 0; i <= this.orbCount; i++) {
+                    this.positions.push({
+                        x: this.mousePos.x,
+                        y: this.mousePos.y,
+                        vx: 0,
+                        vy: 0
+                    });
+                }
+
+                this.createOrbs();
+            }
+
+            createOrbs() {
+                // Limpiar orbes existentes (mantener núcleo)
+                this.elements.slice(1).forEach(el => el.remove());
+                this.connections.forEach(el => el.remove());
+                
+                this.elements = [this.elements[0]]; // Mantener solo el núcleo
+                this.connections = [];
+
+                // Crear nuevos orbes y conexiones
+                for (let i = 1; i <= this.orbCount; i++) {
+                    const orb = document.createElement('div');
+                    orb.className = 'orb';
+                    document.body.appendChild(orb);
+                    this.elements.push(orb);
+
+                    // Crear conexión
+                    const connection = document.createElement('div');
+                    connection.className = 'connection';
+                    document.body.appendChild(connection);
+                    this.connections.push(connection);
+                }
+
+                // Ajustar posiciones si es necesario
+                while (this.positions.length <= this.orbCount) {
+                    this.positions.push({
+                        x: this.mousePos.x,
+                        y: this.mousePos.y,
+                        vx: 0,
+                        vy: 0
+                    });
+                }
+
+                // Actualizar contador
+                document.getElementById('orbCount').textContent = this.orbCount;
+            }
+
+            bindEvents() {
+                const updateMouse = (x, y) => {
+                    this.mousePos.x = x;
+                    this.mousePos.y = y;
+                };
+
+                document.addEventListener('mousemove', (e) => {
+                    updateMouse(e.clientX, e.clientY);
+                });
+
+                document.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    if (e.touches.length > 0) {
+                        updateMouse(e.touches[0].clientX, e.touches[0].clientY);
+                    }
+                }, { passive: false });
+            }
+
+            bindControls() {
+                // Speed control
+                const speedSlider = document.getElementById('speedSlider');
+                const speedValue = document.getElementById('speedValue');
+                speedSlider.addEventListener('input', (e) => {
+                    this.config.speed = parseFloat(e.target.value);
+                    speedValue.textContent = e.target.value;
+                });
+
+                // Smoothness control
+                const smoothnessSlider = document.getElementById('smoothnessSlider');
+                const smoothnessValue = document.getElementById('smoothnessValue');
+                smoothnessSlider.addEventListener('input', (e) => {
+                    this.config.smoothness = parseFloat(e.target.value);
+                    smoothnessValue.textContent = e.target.value;
+                });
+
+                // Orb count control
+                const orbCountSlider = document.getElementById('orbCountSlider');
+                const orbCountValue = document.getElementById('orbCountValue');
+                orbCountSlider.addEventListener('input', (e) => {
+                    this.orbCount = parseInt(e.target.value);
+                    orbCountValue.textContent = e.target.value;
+                    this.createOrbs();
+                });
+
+                // Color controls
+                document.getElementById('coreColorPicker').addEventListener('input', (e) => {
+                    this.config.coreColor = e.target.value;
+                    this.updateColors();
+                });
+
+                document.getElementById('orbColorPicker').addEventListener('input', (e) => {
+                    this.config.orbColor = e.target.value;
+                    this.updateColors();
+                });
+            }
+
+            updateColors() {
+                // Actualizar color del núcleo
+                if (this.elements[0]) {
+                    const coreColor = this.config.coreColor;
+                    this.elements[0].style.background = `radial-gradient(circle at 25% 25%, #fff, ${coreColor} 20%, #8800ff 50%, #4400aa 80%, #000)`;
+                    this.elements[0].style.boxShadow = `0 0 40px ${coreColor}, 0 0 80px ${coreColor}55, 0 0 120px ${coreColor}33`;
+                }
+
+                // Actualizar color de orbes y conexiones
+                const orbColor = this.config.orbColor;
+                this.elements.slice(1).forEach(orb => {
+                    orb.style.background = `radial-gradient(circle at 30% 30%, #fff, ${orbColor} 30%, #0080ff 70%, #003380)`;
+                    orb.style.boxShadow = `0 0 30px ${orbColor}, 0 0 60px ${orbColor}44`;
+                });
+
+                this.connections.forEach(conn => {
+                    conn.style.background = `linear-gradient(90deg, transparent 0%, ${orbColor} 10%, #ffffff 50%, ${orbColor} 90%, transparent 100%)`;
+                    conn.style.boxShadow = `0 0 15px ${orbColor}, 0 0 30px ${orbColor}44`;
+                });
+            }
+
+            updatePhysics() {
+                // Física para el núcleo
+                const core = this.positions[0];
+                const dx = this.mousePos.x - core.x;
+                const dy = this.mousePos.y - core.y;
+                
+                core.vx += dx * this.config.speed;
+                core.vy += dy * this.config.speed;
+                core.vx *= this.config.smoothness;
+                core.vy *= this.config.smoothness;
+                
+                core.x += core.vx;
+                core.y += core.vy;
+
+                // Física para orbes (siguen al elemento anterior)
+                for (let i = 1; i <= this.orbCount; i++) {
+                    const current = this.positions[i];
+                    const target = this.positions[i - 1];
+                    
+                    const dx = target.x - current.x;
+                    const dy = target.y - current.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance > 0) {
+                        const force = Math.min(distance * 0.02, 2);
+                        const forceX = (dx / distance) * force;
+                        const forceY = (dy / distance) * force;
+                        
+                        current.vx += forceX;
+                        current.vy += forceY;
+                        current.vx *= 0.9;
+                        current.vy *= 0.9;
+                        
+                        current.x += current.vx;
+                        current.y += current.vy;
+                    }
+                }
+            }
+
+            render() {
+                // Renderizar elementos
+                for (let i = 0; i < this.elements.length; i++) {
+                    const element = this.elements[i];
+                    const pos = this.positions[i];
+                    if (element && pos) {
+                        element.style.left = pos.x + 'px';
+                        element.style.top = pos.y + 'px';
+                    }
+                }
+
+                // Renderizar conexiones
+                for (let i = 0; i < this.connections.length; i++) {
+                    const connection = this.connections[i];
+                    const start = this.positions[i];
+                    const end = this.positions[i + 1];
+                    
+                    if (connection && start && end) {
+                        const dx = end.x - start.x;
+                        const dy = end.y - start.y;
+                        const distance = Math.sqrt(dx * dx + dy * dy);
+                        const angle = Math.atan2(dy, dx);
+                        
+                        connection.style.left = start.x + 'px';
+                        connection.style.top = start.y + 'px';
+                        connection.style.width = distance + 'px';
+                        connection.style.transform = `rotate(${angle}rad)`;
+                        connection.style.opacity = Math.min(1, distance / 200);
+                    }
+                }
+            }
+
+            animate() {
+                this.updatePhysics();
+                this.render();
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+
+        // Función global para presets
+        function applyPreset(preset) {
+            const presets = {
+                smooth: {
+                    speed: 0.008,
+                    smoothness: 0.95,
+                    coreColor: '#ff6bb3',
+                    orbColor: '#00e0ff'
+                },
+                energetic: {
+                    speed: 0.035,
+                    smoothness: 0.75,
+                    coreColor: '#ff0040',
+                    orbColor: '#ff8000'
+                },
+                minimal: {
+                    speed: 0.012,
+                    smoothness: 0.92,
+                    coreColor: '#ffffff',
+                    orbColor: '#cccccc'
+                },
+                rainbow: {
+                    speed: 0.025,
+                    smoothness: 0.88,
+                    coreColor: '#ff0080',
+                    orbColor: '#00ffff'
+                }
+            };
+            
+            if (presets[preset] && window.neuralSystem) {
+                const config = presets[preset];
+                
+                // Actualizar sliders
+                document.getElementById('speedSlider').value = config.speed;
+                document.getElementById('speedValue').textContent = config.speed;
+                document.getElementById('smoothnessSlider').value = config.smoothness;
+                document.getElementById('smoothnessValue').textContent = config.smoothness;
+                document.getElementById('coreColorPicker').value = config.coreColor;
+                document.getElementById('orbColorPicker').value = config.orbColor;
+                
+                // Aplicar configuración
+                window.neuralSystem.config = { ...window.neuralSystem.config, ...config };
+                window.neuralSystem.updateColors();
+            }
+        }
+
+        // Inicializar sistema
+        window.neuralSystem = new NeuralSystem();
+    </script>
+</body>
+</html>
